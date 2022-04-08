@@ -35,7 +35,6 @@ Post.prototype.cleanUp = function () {
     createdDate: new Date(),
     author: new ObjectId(this.userid),
   };
-  console.log(this.data);
 };
 
 Post.prototype.validate = function () {
@@ -48,6 +47,7 @@ Post.prototype.validate = function () {
 };
 
 Post.findSingleById = function (id, visitorId) {
+  console.log('***', id, visitorId);
   return new Promise(async (resolve, reject) => {
     let posts = await postsCollection
       .aggregate([
@@ -90,12 +90,12 @@ Post.findSingleById = function (id, visitorId) {
   });
 };
 
-Post.findByAuthorId = function (authorId) {
+Post.findByAuthorId = function (authorId, visitorId) {
   console.log(authorId);
-  return Post.reusablePostQuery([
-    { $match: { author: authorId } },
-    { $sort: { createdDate: -1 } },
-  ]);
+  return Post.reusablePostQuery(
+    [{ $match: { author: authorId } }, { $sort: { createdDate: -1 } }],
+    visitorId
+  );
 };
 
 Post.reusablePostQuery = function (

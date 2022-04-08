@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Post = require('../models/Post');
+const Follow = require('../models/Follow');
 exports.register = function (req, res) {
   const user = new User(req.body);
   user
@@ -56,21 +57,80 @@ exports.ifUserExists = function (req, res, next) {
   User.findByUsername(req.params.username)
     .then((userDoc) => {
       req.profileUser = userDoc;
-      console.log(userDoc);
       next();
     })
     .catch(() => res.render('404'));
 };
 
 exports.profilePostsScreen = function (req, res) {
-  Post.findByAuthorId(req.profileUser._id)
+  Post.findByAuthorId(req.profileUser._id, req.visitorId)
     .then((posts) => {
       console.log(posts);
       res.render('profile', {
         profileUsername: req.profileUser.username,
         profileAvatar: req.profileUser.avatar,
         posts: posts,
+        isFollowing: req.isFollowing,
+        isVisitorsProfile: req.isVisitorsProfile,
       });
     })
     .catch(() => res.render('404'));
+};
+exports.profileFollowersScreen = async function (req, res) {
+  try {
+    let followers = await Follow.getFollowersById(req.profileUser._id);
+
+    res.render('profile-followers', {
+      followers,
+      profileUsername: req.profileUser.username,
+      profileAvatar: req.profileUser.avatar,
+      isFollowing: req.isFollowing,
+      isVisitorsProfile: req.isVisitorsProfile,
+    });
+  } catch {
+    res.render('404');
+  }
+};
+
+exports.profileFollowingScreen = async function (req, res) {
+  try {
+    let following = await Follow.getFollowingById(req.profileUser._id);
+
+    res.render('profile-following', {
+      following,
+      profileUsername: req.profileUser.username,
+      profileAvatar: req.profileUser.avatar,
+      isFollowing: req.isFollowing,
+      isVisitorsProfile: req.isVisitorsProfile,
+    });
+  } catch {
+    res.render('404');
+  }
+};
+
+exports.mustBeLoggedIn = function (req, res, next) {
+  if (req.session.user) {
+    next();
+  } else {
+    req.flash('errors', 'You must be logged in to perform that action');
+    req.session.save(() => res.redirect('/'));
+  }
+};
+
+exports.sharedProfileData = async function (req, res, next) {
+  let isFollowing = false;
+  let isVisitorsProfile = false;
+  if (req.session.user) {
+    console.log(req.profileUser);
+    isFollowing = await Follow.isVisitorFollowing(
+      req.profileUser._id,
+      req.visitorId
+    );
+    isVisitorsProfile = req.profileUser._id.equals(req.session.user._id);
+  }
+
+  req.isVisitorsProfile = isVisitorsProfile;
+  req.isFollowing = isFollowing;
+
+  next();
 };
