@@ -1,34 +1,40 @@
 const express = require('express');
-const dotenv = require('dotenv');
-dotenv.config();
-
+const session = require('express-session');
+const MongoStore = require('connect-mongo');
+const flash = require('connect-flash');
+const router = require('./router');
 const app = express();
 app.use(express.static('public'));
+app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
 app.set('views', 'views');
 app.set('view engine', 'ejs');
 
-app.get('/', function (req, res) {
-  res.render('home-guest');
-
-  // res.render('home-dashboard');
-  // res.render('404');
+const sessionOptions = session({
+  secret: 'nevergiveup',
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({
+    client: require('./db'),
+  }),
+  cookie: {
+    maxAge: 1000 * 60 * 60 * 24,
+    httpOnly: true,
+  },
 });
 
-app.get('/create-post', function (req, res) {
-  res.render('create-post');
+app.use(sessionOptions);
+app.use(flash());
+app.use(function (req, res, next) {
+  res.locals.user = req.session.user;
+  res.locals.errors = req.flash('errors');
+  next();
 });
 
-app.get('/profile/:username', function (req, res) {
-  res.render('profile');
-});
+app.use('/', router);
+
 app.get('/test', function (req, res) {
-  // res.render('404');
-  // res.render('create-post');
-  // res.render('home-dashboard');
-  // res.render('home-guest');
-  // res.render('profile');
-  res.render('single-post-screen');
+  res.send('test');
 });
 
-const port = process.env.PORT || 3000;
-app.listen(port);
+module.exports = app;
