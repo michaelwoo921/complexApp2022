@@ -1,6 +1,6 @@
 const postsCollection = require('../db').db().collection('posts');
 const ObjectId = require('mongodb').ObjectId;
-const { post } = require('../app');
+const sanitizeHTML = require('sanitize-html');
 const User = require('./User');
 
 function Post(data, userid, requestedPostId) {
@@ -32,11 +32,36 @@ Post.prototype.cleanUp = function () {
     this.data.body = '';
   }
   this.data = {
-    title: this.data.title,
-    body: this.data.body,
+    title: sanitizeHTML(this.data.title.trim(), {
+      allowedTags: [],
+      allowedAttributes: {},
+    }),
+    body: sanitizeHTML(this.data.body.trim(), {
+      allowedTags: [],
+      allowedAttributes: {},
+    }),
     createdDate: new Date(),
     author: new ObjectId(this.userid),
   };
+};
+
+Post.search = function (searchTerm) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      if (typeof searchTerm == 'string') {
+        let posts = await Post.reusablePostQuery(
+          [{ $match: { $text: { $search: searchTerm } } }],
+          undefined,
+          [{ $sort: { score: { $meta: 'textScore' } } }]
+        );
+        resolve(posts);
+      } else {
+        reject();
+      }
+    } catch {
+      reject();
+    }
+  });
 };
 
 Post.prototype.validate = function () {
@@ -200,7 +225,5 @@ Post.countPostByAuthor = function (id) {
     resolve(postCount);
   });
 };
-
-Post.isVisitorOwner = function () {};
 
 module.exports = Post;

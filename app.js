@@ -3,6 +3,8 @@ const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const flash = require('connect-flash');
 const router = require('./router');
+const markdown = require('marked');
+const sanitizeHTML = require('sanitize-html');
 const app = express();
 app.use(express.static('public'));
 app.use(express.urlencoded({ extended: false }));
@@ -26,6 +28,26 @@ const sessionOptions = session({
 app.use(sessionOptions);
 app.use(flash());
 app.use(function (req, res, next) {
+  res.locals.filterUserHTML = function (content) {
+    return sanitizeHTML(markdown.Parser(content), {
+      allowedTags: [
+        'h1',
+        'h2',
+        'h3',
+        'h4',
+        'p',
+        'br',
+        'ul',
+        'ol',
+        'li',
+        'strong',
+        'bold',
+        'i',
+        'em',
+      ],
+      allowedAttributes: {},
+    });
+  };
   res.locals.user = req.session.user;
   res.locals.errors = req.flash('errors');
   res.locals.success = req.flash('success');

@@ -72,4 +72,6 @@ router.post(
   followsController.removeFollow
 );
 
+router.post('/search', postsController.search);
+
 module.exports = router;
