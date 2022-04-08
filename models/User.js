@@ -3,9 +3,14 @@ const bcrypt = require('bcryptjs');
 const md5 = require('md5');
 const usersCollection = require('../db').db().collection('users');
 
-function User(data) {
+function User(data, getAvatar) {
   this.data = data;
   this.errors = [];
+  if (getAvatar) {
+    this.getAvatar();
+  } else {
+    getAvatar = false;
+  }
 }
 
 User.prototype.login = function () {

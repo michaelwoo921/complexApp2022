@@ -28,13 +28,18 @@ app.use(flash());
 app.use(function (req, res, next) {
   res.locals.user = req.session.user;
   res.locals.errors = req.flash('errors');
+  if (req.session.user) {
+    req.visitorId = req.session.user._id;
+  } else {
+    req.visitorId = 0;
+  }
   next();
 });
 
 app.use('/', router);
 
 app.get('/test', function (req, res) {
-  res.send('test');
+  res.render('create-post');
 });
 
 module.exports = app;
