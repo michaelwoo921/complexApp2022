@@ -72,6 +72,11 @@ exports.profilePostsScreen = function (req, res) {
         posts: posts,
         isFollowing: req.isFollowing,
         isVisitorsProfile: req.isVisitorsProfile,
+        counts: {
+          followersCount: req.followersCount,
+          followingCount: req.followingCount,
+          postCount: req.postCount,
+        },
       });
     })
     .catch(() => res.render('404'));
@@ -86,6 +91,11 @@ exports.profileFollowersScreen = async function (req, res) {
       profileAvatar: req.profileUser.avatar,
       isFollowing: req.isFollowing,
       isVisitorsProfile: req.isVisitorsProfile,
+      counts: {
+        followersCount: req.followersCount,
+        followingCount: req.followingCount,
+        postCount: req.postCount,
+      },
     });
   } catch {
     res.render('404');
@@ -102,6 +112,11 @@ exports.profileFollowingScreen = async function (req, res) {
       profileAvatar: req.profileUser.avatar,
       isFollowing: req.isFollowing,
       isVisitorsProfile: req.isVisitorsProfile,
+      counts: {
+        followersCount: req.followersCount,
+        followingCount: req.followingCount,
+        postCount: req.postCount,
+      },
     });
   } catch {
     res.render('404');
@@ -131,6 +146,12 @@ exports.sharedProfileData = async function (req, res, next) {
 
   req.isVisitorsProfile = isVisitorsProfile;
   req.isFollowing = isFollowing;
+  let postCount = await Post.countPostByAuthor(req.profileUser._id);
+  let followersCount = await Follow.countFollowersById(req.profileUser._id);
+  let followingCount = await Follow.countFollowingById(req.profileUser._id);
+  req.postCount = postCount;
+  req.followersCount = followersCount;
+  req.followingCount = followingCount;
 
   next();
 };

@@ -1,11 +1,13 @@
 const postsCollection = require('../db').db().collection('posts');
 const ObjectId = require('mongodb').ObjectId;
+const { post } = require('../app');
 const User = require('./User');
 
-function Post(data, userid) {
+function Post(data, userid, requestedPostId) {
   this.data = data;
   this.errors = [];
   this.userid = userid;
+  this.requestedPostId = requestedPostId;
 }
 
 Post.prototype.create = function () {
@@ -46,8 +48,42 @@ Post.prototype.validate = function () {
   }
 };
 
+Post.prototype.update = function () {
+  return new Promise(async (resolve, reject) => {
+    try {
+      let post = await Post.findSingleById(this.requestedPostId, this.userid);
+      if (post.isVisitorOwner) {
+        // actually update db
+        let status = await this.actuallyupdate();
+        resolve(status);
+      } else {
+        reject();
+      }
+    } catch {
+      reject();
+    }
+  });
+};
+
+Post.prototype.actuallyupdate = function () {
+  return new Promise(async (resolve, reject) => {
+    this.cleanUp();
+    this.validate();
+    if (!this.errors.length) {
+      await postsCollection.findOneAndUpdate(
+        { _id: ObjectId(this.requestedPostId) },
+        {
+          $set: { title: this.data.title, body: this.data.body },
+        }
+      );
+      resolve('success');
+    } else {
+      resolve('failure');
+    }
+  });
+};
+
 Post.findSingleById = function (id, visitorId) {
-  console.log('***', id, visitorId);
   return new Promise(async (resolve, reject) => {
     let posts = await postsCollection
       .aggregate([
@@ -98,6 +134,21 @@ Post.findByAuthorId = function (authorId, visitorId) {
   );
 };
 
+Post.delete = function (postIdTodelete, currentUserId) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      let post = await Post.findSingleById(postIdTodelete, currentUserId);
+      if (post.isVisitorOwner) {
+        await postsCollection.deleteOne({ _id: new ObjectId(postIdTodelete) });
+        resolve();
+      } else {
+        reject();
+      }
+    } catch {
+      reject();
+    }
+  });
+};
 Post.reusablePostQuery = function (
   uniqueOperations,
   visitorId,
@@ -129,7 +180,6 @@ Post.reusablePostQuery = function (
     let posts = await postsCollection.aggregate(aggOperations).toArray();
 
     posts = posts.map((post) => {
-      console.log(post.authorId, visitorId);
       post.isVisitorOwner = post.authorId.equals(visitorId);
       post.authorId = undefined;
 
@@ -143,5 +193,14 @@ Post.reusablePostQuery = function (
     resolve(posts);
   });
 };
+
+Post.countPostByAuthor = function (id) {
+  return new Promise(async (resolve, reject) => {
+    let postCount = await postsCollection.countDocuments({ author: id });
+    resolve(postCount);
+  });
+};
+
+Post.isVisitorOwner = function () {};
 
 module.exports = Post;

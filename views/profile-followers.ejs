@@ -1,10 +1,7 @@
 <%- include('includes/header') %>
 
 <div class="container py-md-5 container--narrow">
-  <% success.forEach(message => { %>
-  <div class="alert alert-success text-center"><%= message %></div>
-
-  <% }) %> <%- include('includes/profileShared') %>
+  <%- include('includes/flash') %> <%- include('includes/profileShared') %>
 
   <div class="list-group">
     <% followers.forEach(follower => { %>
