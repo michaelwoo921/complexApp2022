@@ -9,9 +9,11 @@ router.post('/register', userController.register);
 router.post('/login', userController.login);
 router.post('/logout', userController.logout);
 
-router.get('/profile/:username', function (req, res) {
-  res.render('profile');
-});
+router.get(
+  '/profile/:username',
+  userController.ifUserExists,
+  userController.profilePostsScreen
+);
 
 router.get('/create-post', postsController.viewCreateScreen);
 router.post('/create-post', postsController.create);

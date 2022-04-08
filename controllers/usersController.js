@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Post = require('../models/Post');
 exports.register = function (req, res) {
   const user = new User(req.body);
   user
@@ -49,4 +50,27 @@ exports.home = function (req, res) {
   } else {
     res.render('home-guest', { regErrors: req.flash('regErrors') });
   }
+};
+
+exports.ifUserExists = function (req, res, next) {
+  User.findByUsername(req.params.username)
+    .then((userDoc) => {
+      req.profileUser = userDoc;
+      console.log(userDoc);
+      next();
+    })
+    .catch(() => res.render('404'));
+};
+
+exports.profilePostsScreen = function (req, res) {
+  Post.findByAuthorId(req.profileUser._id)
+    .then((posts) => {
+      console.log(posts);
+      res.render('profile', {
+        profileUsername: req.profileUser.username,
+        profileAvatar: req.profileUser.avatar,
+        posts: posts,
+      });
+    })
+    .catch(() => res.render('404'));
 };

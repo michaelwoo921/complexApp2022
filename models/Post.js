@@ -90,4 +90,58 @@ Post.findSingleById = function (id, visitorId) {
   });
 };
 
+Post.findByAuthorId = function (authorId) {
+  console.log(authorId);
+  return Post.reusablePostQuery([
+    { $match: { author: authorId } },
+    { $sort: { createdDate: -1 } },
+  ]);
+};
+
+Post.reusablePostQuery = function (
+  uniqueOperations,
+  visitorId,
+  finalOperations = []
+) {
+  return new Promise(async (resolve, reject) => {
+    let aggOperations = uniqueOperations
+      .concat([
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'author',
+            foreignField: '_id',
+            as: 'authorDocument',
+          },
+        },
+        {
+          $project: {
+            title: 1,
+            body: 1,
+            createdDate: 1,
+            authorId: '$author',
+            author: { $arrayElemAt: ['$authorDocument', 0] },
+          },
+        },
+      ])
+      .concat(finalOperations);
+
+    let posts = await postsCollection.aggregate(aggOperations).toArray();
+
+    posts = posts.map((post) => {
+      console.log(post.authorId, visitorId);
+      post.isVisitorOwner = post.authorId.equals(visitorId);
+      post.authorId = undefined;
+
+      post.author = {
+        username: post.author.username,
+        avatar: new User(post.author, true).avatar,
+      };
+      return post;
+    });
+
+    resolve(posts);
+  });
+};
+
 module.exports = Post;
