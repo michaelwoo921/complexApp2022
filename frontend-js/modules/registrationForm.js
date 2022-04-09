@@ -2,6 +2,7 @@ import axios from 'axios';
 
 export default class RegistrationForm {
   constructor() {
+    this._csrf = document.querySelector('[name="_csrf"]').value;
     this.form = document.querySelector('#registration-form');
     this.allFields = document.querySelectorAll(
       '#registration-form .form-control'
@@ -145,7 +146,7 @@ export default class RegistrationForm {
 
     if (!this.email.errors) {
       axios
-        .post('/doesEmailExist', { email: this.email.value })
+        .post('/doesEmailExist', { email: this.email.value, _csrf: this._csrf })
         .then((response) => {
           if (response.data) {
             this.showValidationError(this.email, 'That email is already taken');
@@ -170,7 +171,10 @@ export default class RegistrationForm {
 
     if (!this.username.errors) {
       axios
-        .post('/doesUsernameExist', { username: this.username.value })
+        .post('/doesUsernameExist', {
+          username: this.username.value,
+          _csrf: this._csrf,
+        })
         .then((response) => {
           if (response.data) {
             this.showValidationError(

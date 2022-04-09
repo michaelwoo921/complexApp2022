@@ -5,10 +5,13 @@ const flash = require('connect-flash');
 const router = require('./router');
 const markdown = require('marked');
 const sanitizeHTML = require('sanitize-html');
+const csrf = require('csurf');
+const cors = require('cors');
 const app = express();
 app.use(express.static('public'));
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
+app.use(cors());
 app.set('views', 'views');
 app.set('view engine', 'ejs');
 
@@ -59,7 +62,23 @@ app.use(function (req, res, next) {
   next();
 });
 
+app.use(csrf());
+app.use(function (req, res, next) {
+  res.locals.csrfToken = req.csrfToken();
+  next();
+});
 app.use('/', router);
+
+app.use(function (err, req, res, next) {
+  if (err) {
+    if (err.code == 'EBADCSRFTOKEN') {
+      req.flash('errors', 'Cross site request forgery detected');
+      req.session.save(() => res.redirect('/'));
+    } else {
+      res.render('404');
+    }
+  }
+});
 
 app.get('/test', function (req, res) {
   res.render('create-post');
